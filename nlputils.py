@@ -1,5 +1,6 @@
 from fastai.basics import *
 import re
+from fastdownload import download_url 
 
 
 def get_wiki(path,lang):
@@ -28,24 +29,26 @@ def get_wiki(path,lang):
 
 def split_wiki(path,lang):
     dest = path/'docs'
-    name = f'{lang}wiki'
     if dest.exists():
         print(f"{dest} already exists; not splitting")
         return dest
 
     dest.mkdir(exist_ok=True, parents=True)
     title_re = re.compile(rf'<doc id="\d+" url="https://{lang}.wikipedia.org/wiki\?curid=\d+" title="([^"]+)">')
-    lines = (path/name).open()
-    f=None
 
-    for i,l in enumerate(lines):
-        if i%100000 == 0: print(i)
-        if l.startswith('<doc id="'):
-            title = title_re.findall(l)[0].replace('/','_')
-            if len(title)>150: continue
-            if f: f.close()
-            f = (dest/f'{title}.txt').open('w')
-        else: f.write(l)
-    f.close()
+    textpath = (path/'text')
+    for file in FileGetter(recurse=True)(textpath):
+        lines = file.open()
+        f=None
+
+        for i,l in enumerate(lines):
+            # if i%100000 == 0: print(i)
+            if l.startswith('<doc id="'):
+                title = title_re.findall(l)[0].replace('/','_')
+                if len(title)>150: continue
+                if f: f.close()
+                f = (dest/f'{title}.txt').open('w')
+            else: f.write(l)
+        f.close()
     return dest
 
